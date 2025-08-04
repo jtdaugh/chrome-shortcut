@@ -42,12 +42,15 @@ const newButton = document.getElementById("new");
 const statusElement = document.getElementById("status");
 const saveButton = document.getElementById("save");
 
-chrome.storage.sync.get({
-	redirects: {}
-}, ({redirects}) => {
+// Use async/await for Manifest V3 compatibility
+(async () => {
+	const {redirects = {}} = await chrome.storage.sync.get({redirects: {}});
+
 	let keys = Object.keys(redirects);
-	if (!keys.length)
-		redirects = {"": ""};
+	if (!keys.length) {
+		keys = [""];
+		redirects[""] = "";
+	}
 
 	keys.sort();
 
@@ -58,20 +61,24 @@ chrome.storage.sync.get({
 	});
 
 	newButton.addEventListener("click", clickEvent => {
-		let controller = new RedirectController;
+		let controller = new RedirectController();
 		content.appendChild(controller.element);
 		controllers.push(controller);
 	});
 
-	saveButton.addEventListener("click", clickEvent => {
-		chrome.storage.sync.set({
-			redirects: controllers.filter(controller => !controller.invalid).reduce((value, controller) => controller.reduce(value), {})
-		}, () => {
-			statusElement.textContent = "Options saved";
-			setTimeout(() => {
-				statusElement.textContent = "";
-			}, 1500);
-			chrome.runtime.reload();
-		});
+	saveButton.addEventListener("click", async (clickEvent) => {
+		const newRedirects = controllers
+			.filter(controller => !controller.invalid)
+			.reduce((value, controller) => controller.reduce(value), {});
+
+		await chrome.storage.sync.set({redirects: newRedirects});
+
+		statusElement.textContent = "Options saved";
+		setTimeout(() => {
+			statusElement.textContent = "";
+		}, 1500);
+
+		// Reload the service worker to apply new rules
+		chrome.runtime.reload();
 	});
-});
+})();
