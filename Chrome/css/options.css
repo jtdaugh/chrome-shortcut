@@ -1,3 +1,40 @@
+/* Reset and base styles */
+* {
+	box-sizing: border-box;
+}
+
+html {
+	height: 100%;
+}
+
+body {
+	margin: 0 !important;
+	padding: 0 !important;
+	height: 100vh !important;
+	min-height: 100vh !important;
+}
+
+/* Vertical centering for non-mobile screens */
+@media (min-width: 768px) {
+	body {
+		display: grid !important;
+		place-items: center !important;
+		padding: 20px !important;
+	}
+	
+	.container {
+		width: 100%;
+		max-width: 600px;
+	}
+}
+
+/* Mobile styles */
+@media (max-width: 767px) {
+	body {
+		padding: 20px !important;
+	}
+}
+
 h2 {
 	margin: 0;
 }

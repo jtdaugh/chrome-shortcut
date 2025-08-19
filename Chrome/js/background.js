@@ -1,16 +1,10 @@
 // Service worker for Manifest V3
-let redirects = {};
+// Note: Service workers don't maintain persistent state, so we load redirects on-demand
 
-// Load redirects on startup
-chrome.runtime.onStartup.addListener(loadRedirects);
-chrome.runtime.onInstalled.addListener(loadRedirects);
-
-// Listen for storage changes
-chrome.storage.onChanged.addListener((changes, namespace) => {
-	if (namespace === 'sync' && changes.redirects) {
-		redirects = changes.redirects.newValue || {};
-	}
-});
+const PERM_REDIRECTS = {
+	"http://m/": "https://mail.google.com",
+	"http://c/": "https://calendar.google.com"
+};
 
 // Listen for navigation events
 chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
@@ -18,6 +12,16 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
 	if (details.frameId !== 0) return;
 
 	const url = details.url;
+
+	// Load redirects fresh each time (service worker may have been restarted)
+	let redirects = {};
+	try {
+		const result = await chrome.storage.sync.get({ redirects: {} });
+		redirects = { ...PERM_REDIRECTS, ...result.redirects };
+	} catch (error) {
+		console.error('Failed to load redirects:', error);
+		return;
+	}
 
 	// Check for exact match first
 	if (redirects[url]) {
@@ -34,13 +38,3 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
 		}
 	}
 });
-
-async function loadRedirects() {
-	try {
-		const result = await chrome.storage.sync.get({ redirects: {} });
-		redirects = result.redirects;
-		console.log('Loaded redirects:', redirects);
-	} catch (error) {
-		console.error('Failed to load redirects:', error);
-	}
-}
